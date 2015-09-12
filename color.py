@@ -79,10 +79,8 @@ class Graph:
 
     def LoadFromFile(self, f):
         for line in f:
-            s = line.split()
-            node_name = s[0][:-1]
-            self.Nodes[node_name] = (Node(node_name),
-                                     set([name[:-1] for name in s[1:]]))
+            s = line[:-1].split(':')
+            self.Nodes[s[0]] = (Node(s[0]), set(s[1].split(',')))
 
 def GetNextNode(nodes):
     for n in nodes.Nodes:
@@ -104,28 +102,26 @@ def SolveNextColor(nodes):
 
     # Se não tem mais nós achou a solução.
     if target == None:
-        return nodes;
+        return True;
 
     # Pra cada possível solução
     for color in GetColors(nodes, target):
         nodes[target].SetColor(color) # Atribui a cor
-        nodes = SolveNextColor(nodes) # Tenta aprofundar ainda mais
-
-        if not nodes:
+        if not SolveNextColor(nodes): # Tenta aprofundar ainda mais
             # Se não conseguiu aprofundar troca de cor
             nodes[target].ClearColor()
         else:
             # Se achou uma solução retorna
-            return nodes
+            return True
 
     # Se nenhuma cor levou a uma solução, falha.
-    return None
+    return False
 
 nodes = Graph()
-f = open('in')
-_type = f.readline().split()[1]
-nodes.LoadFromFile(f)
-f.close()
+infile = sys.stdin
+infile.readline().split()[1]
+nodes.LoadFromFile(infile)
+infile.close()
 
 SolveNextColor(nodes)
 
