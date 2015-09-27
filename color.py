@@ -130,18 +130,35 @@ class Graph:
                     flag = False
         return flag
 
-def GetNextNode(nodes):
-    for n in nodes:
-        if n.Color == None:
-            return n
-    return None
+def VerifiyPruning(nodes):
+    for node in nodes:
+        if len(node.AvailableColors) == 0:
+            return True
+    return False
 
-def GetColors(nodes, target):
-    return frozenset(nodes[target].AvailableColors)
+def GetNextNode(nodes, policy):
+    if(policy == 'c'):
+        opts = sorted(nodes, key = lambda n: \
+            (n.Color != None,                   # Em Branco
+            len(n.AvailableColors)))            # MRV
+        return opts[0].Name if opts[0].Color == None else None
 
-def SolveNextColor(nodes):
+    elif(policy == 'd'):
+        opts = sorted(nodes, key = lambda n: \
+            (n.Color != None,                   # Em Branco
+            len(n.AvailableColors),             # MRV
+            -len(nodes.GetNeighbors(n.Name))))  # Desempata com o grau
+        return opts[0].Name if opts[0].Color == None else None
+
+    else:
+        for node in nodes:
+            if node.Color == None:
+                return node.Name
+        return None
+
+def SolveNextColor(nodes, policy):
     # Determina o próximo nó a ser aprofundado
-    target = GetNextNode(nodes)
+    target = GetNextNode(nodes, policy)
 
     # Se não tem mais nós achou a solução.
     if target == None:
@@ -149,9 +166,11 @@ def SolveNextColor(nodes):
 
     # Pra cada possível solução
     for color in COLORS:
-        if nodes.Paint(target.Name, color): # Tenta pintar o nó
-            if not SolveNextColor(nodes):   # Tenta aprofundar ainda mais
-                nodes.Unpaint(target.Name)  # Se não conseguiu desfaz a pintura
+        if nodes.Paint(target, color): # Tenta pintar o nó
+            if(policy != 'a' and VerifiyPruning(nodes)):
+                nodes.Unpaint(target)  # Se podou desfaz a pintura
+            elif not SolveNextColor(nodes, policy):#Tenta aprofundar ainda mais
+                nodes.Unpaint(target)  # Se não conseguiu desfaz a pintura
             else:
                 return True # Se achou uma solução retorna True
 
@@ -161,9 +180,9 @@ def SolveNextColor(nodes):
 if __name__ == '__main__':
     nodes = Graph() # Cria um grafo vazio
 
-    # Tenta abrir o arquivo dado e pular a primeira linha
+    # Tenta abrir o arquivo dado e ler a política
     infile = open(sys.argv[1])
-    infile.readline()
+    policy = infile.readline().split(',')[1][:-1]
 
     # Carrega os dados e fecha o arquivo
     nodes.LoadFromFile(infile)
@@ -174,7 +193,7 @@ if __name__ == '__main__':
         sys.exit(1) # Se não for sai com erro
 
     # Começa o backtracking
-    SolveNextColor(nodes)
+    SolveNextColor(nodes, policy)
 
     # Imprime os resultados
     for n in nodes:
