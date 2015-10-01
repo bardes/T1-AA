@@ -1,0 +1,174 @@
+\documentclass[11pt,towside]{article}
+\usepackage[brazilian]{babel}			% Ajusta a língua para Portugês Brasileiro
+\usepackage{amsmath}					% Permite escrever fórmulas matemáticas
+\usepackage[utf8]{inputenc}			% Lê o arquivo fonte codificado em UTF-8
+\usepackage[T1]{fontenc}				% Codifica os tipos no arquivo de saída usando T1
+\usepackage[a4paper]{geometry}			% Ajusta o tamanho do papel para A4
+\usepackage{titling}					% Permite fazer ajustes no título do artigo
+\usepackage{fancyhdr}					% Permite ajustar cabeçalhos e rodapés
+\usepackage{indentfirst}				% Ajusta a indentação do primeiro parágrafo
+\usepackage{pgfplotstable}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[section]{placeins}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{color}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=Python,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=left,
+  numberstyle=\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=fasle,
+  breakatwhitespace=true,
+  tabsize=3,
+  frame=L
+}
+
+
+\graphicspath{{img/}}
+
+%% Define estilo das tabelas %%
+\pgfplotstableset {
+	every head row/.style={before row=\toprule,after row=\midrule},
+    every last row/.style={after row=\bottomrule}
+}
+            
+%% Inicio do documento %%
+\usepackage{amsmath}
+\begin{document}
+
+%% Título do artigo %%
+\begin{titlepage}
+\begin{center}
+
+\textsc{\Huge Universidade de São Paulo}\\[5mm]
+\textsc{\Large Análise de Desempenho e Eficiência Para Diferentes Variações de Algorítimos de Backtracking}
+
+\vfill
+{\Huge SCC0218 \\[2mm] Algoritmos Avançados e Aplicações}
+\vfill
+
+\begin{tabular}{rll}
+\emph{Professor:}& {\Large Gustavo Enrique de Almeida Prado Alves Batista} \\[5mm]
+\emph{Alunos:}& {\Large Ana Carolina Spangler} (8532356) \\[2mm]
+& {\Large Paulo B. N. Nascimento} (8531932)
+\end{tabular}\\[25mm]
+
+\end{center}
+\end{titlepage}
+
+%% Inicio do artigo %%
+\section{Análise do Código (github.com/bardes/T1-AA)}
+Para implementação do algorítimo o grupo escolheu a linguagem \emph{python},\footnote{Versão 3.4}, com o objetivo de focar na clareza de código e agilidade de desenvolvimento.
+
+Fora criadas duas classes para organizar os dados do programa: \texttt{Node} e \texttt{Graph}. Em conjunto essas classes foram usadas para representar as limitações do domínio do problema através de um grafo representando as fronteiras.
+
+O processamento de fato dos dos dados em busca de uma solução ocorre na função \texttt{SolveNextColor()}, listada abaixo:
+
+\begin{lstlisting}
+def SolveNextColor(nodes, policy):
+    # Determina o proximo no a ser aprofundado
+    target = GetNextNode(nodes, policy)
+
+    # Se nao tem mais nos achou a solucao.
+    if target == None:
+        return True;
+
+    # Pra cada possivel solucao
+    for color in COLORS:
+        if nodes.Paint(target, color): # Tenta pintar o no
+            if(policy != 'a' and VerifiyPruning(nodes)):
+                nodes.Unpaint(target)  # Se podou desfaz a pintura
+            elif not SolveNextColor(nodes, policy):#Tenta aprofundar ainda mais
+                nodes.Unpaint(target)  # Se nao conseguiu desfaz a pintura
+            else:
+                return True # Se achou uma solucao retorna True
+
+    # Se nenhuma cor levou a uma solucao, falha.
+    return False
+\end{lstlisting}
+
+Como é possível notar, a primeira etapa da função é determinar sob qual nó ela deve operar. Esse trabalho é delegado para a função \texttt{GetNextNode()}, que será discutida adiante. Se não foi possível achar nenhum nó para ser trabalhado, isso indica que o problema foi resolvido, e por isso pode-se retornar \texttt{True}, indicando sucesso.
+
+Após determinar o nó a ser trabalhado a função tenta pintá-lo (uma cor de cada vez), sendo que as cores que violariam as limitações do problema são descartadas pela função \texttt{Paint()}, que só permite pintura com cores legais, ou seja, diferente dos vizinhos atuais.
+
+Além disso, dependendo da politica escolhida, pode haver uma etapa adicional de \emph{poda}, que avalia o estado de todos os nós em busca de combinações insolúveis. Caso a verificação de poda detecte algum problema a pintura é desfeita e a próxima cor (se existir) é tentada.
+
+Em seguida o algorítimo tenta aprofundar a solução (recursivamente) chamando \texttt{SolveNextColor()} novamente. Se a tentativa falhara, ou seja, retornar \texttt{False} a escolha de cor atual é desfeita e passa-se para a próxima.
+
+A função \texttt{GetNextNode} é responsável por determinar qual o próximo nó a ser trabalhado, dado o estado atual do mapa e a política escolhida, ou retornar \texttt{None} caso não haja mais nós a se trabalhar.
+
+\begin{lstlisting}
+def GetNextNode(nodes, policy):
+    if(policy == 'c'):
+        opts = sorted(nodes, key = lambda n: \
+            (n.Color != None,                   # Em Branco
+            len(n.AvailableColors)))            # MRV
+        return opts[0].Name if opts[0].Color == None else None
+
+    elif(policy == 'd'):
+        opts = sorted(nodes, key = lambda n: \
+            (n.Color != None,                   # Em Branco
+            len(n.AvailableColors),             # MRV
+            -len(nodes.GetNeighbors(n.Name))))  # Desempata com o grau
+        return opts[0].Name if opts[0].Color == None else None
+
+    else:
+        for node in nodes:
+            if node.Color == None:
+                return node.Name
+        return None
+\end{lstlisting}
+
+Como pode-se notar, há 3 possíveis linhas de execução. Caso a política seja \texttt{'a'} ou \texttt{'b'}, a função simplesmente retorna o primeiro nó em branco achado. Já no caso \texttt{'c'} os nós são ordenados colocando-se primeiro os nós em branco, e usando como critério de desempate àquele com menor número de cores possíveis, ou seja, os nós mais restritos primeiro (MRV). Por fim o caso \texttt{'d'} é análogo ao \texttt{'c'}, porém adicionado de um terceiro critério de desempate, colocando-se os nós de maior\footnote{Note o sinal negativo no grau, já que queremos os maiores graus primeiro e a ordenação é em ordem crescente.} grau antes.
+
+\section{Resultados}
+
+Como pode-se notar nos dados das tabela abaixo, as políticas ``A'' e ``B'' variam muito em relação ao desempenho tanto do ponto de vista de total de atribuições, quanto em relação ao tempo de execução. Esse comportamento é esperado, já que cada execução depende da ordem em que os nós são aprofundados, e devido à maneira como conjuntos são implementados em \emph{python}, cada execução apresenta uma ordem diferente.
+
+Mesmo assim é possível estimar que, pelo menos no caso do Brasil, a introdução de \emph{podas} no política ``B'' introduziu ganhos de aproximadamente 3 vezes, tanto na quantidade de atribuições, quanto no tempo de execução, logo os \emph{overheads} compensam os ganhos.
+
+Já a introdução de MVR na política ``C'' trouxe excelentes ganhos, de 3 até 5 ordens de magnitudes em ambas métricas, provando que a heurística MVR sem dúvidas compensa seus \emph{overheads} trazendo ganhos impressionantes.
+
+Finalmente a introdução de um critério de desempate na política ``D'' não pareceu causar benefícios em relação à política anterior, na verdade devido ao \emph{overhead} por causa da adição de um critério extra de desempate essa política parece levar a uma
+pequena perda de desempenho em relação à politica ``C''. 
+
+\begin{table}[h!]\centering
+	\pgfplotstabletypeset[
+		col sep=tab,
+		sci zerofill,
+		columns/Política/.style={string type}]{bra}
+	\caption{Brasil (DP = Desvio Padrão)}
+\end{table}
+
+\begin{table}[h!]\centering
+	\pgfplotstabletypeset[
+		col sep=tab,
+		sci zerofill,
+		columns/Política/.style={string type}]{eur}
+	\caption{Europa (DP = Desvio Padrão)}
+\end{table}
+
+\begin{table}[h!]\centering
+	\pgfplotstabletypeset[
+		col sep=tab,
+		sci zerofill,
+		columns/Política/.style={string type}]{usa}
+	\caption{USA (DP = Desvio Padrão). Política A foi interrompida após 2 horas (7200 segundos) sem resultados. }
+\end{table}
+
+
+\end{document}
