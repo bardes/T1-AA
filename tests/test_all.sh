@@ -1,14 +1,24 @@
 #!/bin/bash
 
 RUNS=$1
-FILES=$(find . -maxdepth 1 -name "*.$2")
+FILES=$(find . -maxdepth 1 -regextype posix-extended -regex '^.*\.in$')
 PROG='../color.py'
-
-printf "#FILE_NAME\tAVG_ATTRS\tSD_ATTRS\tAVG_TIME\tSD_TIME\n" > results
 
 for IN_FILE in $FILES
 do
-    printf "Calculating \"$IN_FILE\".i\t"
+    for l in a b c d
+    do
+        echo ",$l" > $IN_FILE.$l
+        tail -n +2 $IN_FILE >> $IN_FILE.$l
+    done
+done
+
+
+printf "#FILE_NAME\tAVG_ATTRS\tSD_ATTRS\tAVG_TIME\tSD_TIME\n" > results
+
+for IN_FILE in $(ls *.in.[abcd])
+do
+    printf "Calculating \"$IN_FILE\"\t"
     truncate -s0 .tmp_attrs .tmp_times
     
     for ((n=0; n<$RUNS; n++))
@@ -26,4 +36,5 @@ do
     echo >> results
 done
 
-#rm -f .tmp_attrs .tmp_times
+rm -f .tmp_attrs .tmp_times
+rm -r *.in.[abcd]
