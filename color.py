@@ -2,6 +2,7 @@
 
 # Evita "stack overflow"
 import sys
+
 sys.setrecursionlimit(1100)
 
 COLORS = frozenset({'Azul', 'Verde', 'Vermelho', 'Amarelo'})
@@ -43,6 +44,7 @@ class Node:
 
 class Graph:
     def __init__(self):
+        self.TotalColorAttributions = 0
         self.Nodes = {}
 
     def __getitem__(self, name):
@@ -87,7 +89,9 @@ class Graph:
         return frozenset(self.Nodes[name][1])
 
     def Paint(self, target, color):
+        self.TotalColorAttributions += 1
         if color not in COLORS:
+            self.TotalColorAttributions -= 1
             raise TypeError("Invalid color: \"{}\"".format(color))
         elif color not in self[target].AvailableColors:
             return False
@@ -178,10 +182,26 @@ def SolveNextColor(nodes, policy):
     return False
 
 if __name__ == '__main__':
+    # Pega os argumentos
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument("infile", type = argparse.FileType('r'),
+            help = "Input data file. (use '-' for stdin)")#default = sys.stdin)
+    p.add_argument("-s", "--silent",
+            help = "Suppresses the output of the results.",
+            action = "store_true")
+    p.add_argument("-a", "--attrs",
+            help = "Prints the total number of color attributions.",
+            action = "store_true")
+    p.add_argument("-v", "--validate",
+            help = "Validates the input before using it. Exits on errors.",
+            action = "store_true")
+    args = p.parse_args()
+
     nodes = Graph() # Cria um grafo vazio
 
     # Tenta abrir o arquivo dado e ler a política
-    infile = open(sys.argv[1])
+    infile = args.infile
     policy = infile.readline().split(',')[1][:-1]
 
     # Carrega os dados e fecha o arquivo
@@ -189,12 +209,18 @@ if __name__ == '__main__':
     infile.close()
 
     # verifica se grafo lido é válido
-    if(nodes.ValidadteSymmetry() == False):
+    if(args.validate and nodes.ValidadteSymmetry() == False):
         sys.exit(1) # Se não for sai com erro
 
     # Começa o backtracking
     SolveNextColor(nodes, policy)
 
     # Imprime os resultados
-    for n in nodes:
-        print("{}: {}".format(n.Name, n.Color))
+    if not args.silent:
+        for n in nodes:
+            print("{}: {}".format(n.Name, n.Color))
+
+    # Verifica se deve imprimir os benchmarks
+    if args.attrs:
+        print("Color attributions:\t{}".format(nodes.TotalColorAttributions))
+
