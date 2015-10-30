@@ -1,7 +1,9 @@
 #!/usr/bin/python3
 
 # Evita "stack overflow"
+import argparse
 import sys
+import re
 
 sys.setrecursionlimit(1100)
 
@@ -117,7 +119,12 @@ class Graph:
 
     def LoadFromFile(self, f):
         for line in f:
-            s = line[:-1].split(':')
+            if line == '': continue                 # Pula linhas vazias
+
+            s = (re.sub(r'([:,]) ', r'\1', line)    # Tira espaços desnecessários
+                 [:-2]                              # Tira o '.' e o '\n' do final
+                 .split(':'))                       # Divide a string no ':'
+
             self.Nodes[s[0]] = (Node(s[0]), set(s[1].split(',')))
 
     def ValidadteSymmetry(self):
@@ -183,7 +190,6 @@ def SolveNextColor(nodes, policy):
 
 if __name__ == '__main__':
     # Pega os argumentos
-    import argparse
     p = argparse.ArgumentParser()
     p.add_argument("infile", type = argparse.FileType('r'),
             help = "Input data file. (use '-' for stdin)")#default = sys.stdin)
@@ -202,7 +208,7 @@ if __name__ == '__main__':
 
     # Tenta abrir o arquivo dado e ler a política
     infile = args.infile
-    policy = infile.readline().split(',')[1][:-1]
+    policy = infile.readline().split()[1][:-1]
 
     # Carrega os dados e fecha o arquivo
     nodes.LoadFromFile(infile)
